@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* ==========================================================================
    FOODN'T DESIGN SYSTEM — ENTERPRISE LOGISTICS & PRECISION DISPATCH
    ========================================================================== */
