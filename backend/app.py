@@ -4,6 +4,7 @@ import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 app = FastAPI(title="Foodn't Engine API")
@@ -44,11 +45,42 @@ def init_db():
 
 init_db()
 
+def find_frontend_path():
+    candidates = [
+        # Production build in dist (recommended)
+        os.path.join(os.path.dirname(__file__), "..", "frontend", "dist", "index.html"),
+        os.path.join(os.path.dirname(__file__), "frontend", "dist", "index.html"),
+        os.path.join(os.getcwd(), "frontend", "dist", "index.html"),
+        os.path.join(os.getcwd(), "dist", "index.html"),
+        # Source index.html fallback
+        os.path.join(os.path.dirname(__file__), "..", "frontend", "index.html"),
+        os.path.join(os.path.dirname(__file__), "frontend", "index.html"),
+        os.path.join(os.getcwd(), "frontend", "index.html"),
+        os.path.join(os.getcwd(), "index.html"),
+    ]
+    for p in candidates:
+        norm_p = os.path.normpath(p)
+        if os.path.exists(norm_p):
+            return norm_p
+    return None
+
+# Mount compiled static assets if dist exists
+for assets_candidate in [
+    os.path.join(os.path.dirname(__file__), "..", "frontend", "dist", "assets"),
+    os.path.join(os.path.dirname(__file__), "frontend", "dist", "assets"),
+    os.path.join(os.getcwd(), "frontend", "dist", "assets"),
+    os.path.join(os.getcwd(), "dist", "assets"),
+]:
+    norm_assets = os.path.normpath(assets_candidate)
+    if os.path.isdir(norm_assets):
+        app.mount("/assets", StaticFiles(directory=norm_assets), name="assets")
+        break
+
 # Serve index.html directly on http://127.0.0.1:8000
 @app.get("/")
 def serve_frontend():
-    frontend_path = os.path.join(os.path.dirname(__file__), "..", "frontend", "index.html")
-    if os.path.exists(frontend_path):
+    frontend_path = find_frontend_path()
+    if frontend_path:
         return FileResponse(frontend_path)
     return {"error": "index.html not found in frontend folder"}
 
